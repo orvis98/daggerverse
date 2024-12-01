@@ -1,0 +1,5 @@
+{
+  "name": "talos",
+  "engineVersion": "v0.14.0",
+  "sdk": "go"
+}
