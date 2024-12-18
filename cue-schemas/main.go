@@ -193,6 +193,7 @@ func (m *CueSchemas) Vendor(ctx context.Context, file *dagger.File) (*dagger.Dir
 func (m *CueSchemas) Publish(
 	ctx context.Context,
 	file *dagger.File,
+	// +optional
 	// the registry URL
 	registry string,
 	// +optional
@@ -202,6 +203,9 @@ func (m *CueSchemas) Publish(
 	// +optional
 	// the registry password
 	password *dagger.Secret,
+	// +optional
+	// the registry service
+	service *dagger.Service,
 ) (string, error) {
 	dir, err := m.Vendor(ctx, file)
 	if err != nil {
@@ -209,6 +213,13 @@ func (m *CueSchemas) Publish(
 	}
 	mods, _ := dir.Entries(ctx)
 	ctr := m.Container().WithEnvVariable("CUE_REGISTRY", registry)
+	if registry == "" && service == nil {
+		return "", fmt.Errorf("one of registry or service is required")
+	} else if registry == "" {
+		endpoint, _ := service.Endpoint(ctx)
+		ctr = ctr.WithServiceBinding("registry", service).
+			WithEnvVariable("CUE_REGISTRY", fmt.Sprintf("%s+insecure", endpoint))
+	}
 	if password != nil {
 		docker := dag.Container().
 			From("docker").
