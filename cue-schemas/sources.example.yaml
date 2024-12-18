@@ -1,0 +1,17 @@
+---
+github:
+  - tag: v2.4.0
+    owner: fluxcd
+    repo: flux2
+    assets:
+      - install.yaml
+  - tag: v1.2.4
+    owner: envoyproxy
+    repo: gateway
+    files:
+      - charts/gateway-helm/crds/gatewayapi-crds.yaml
+    dirs:
+      - charts/gateway-helm/crds/generated
+kubernetes:
+  - version: v1.31.4
+  - version: v1.32.0

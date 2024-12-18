@@ -1,0 +1,5 @@
+{
+  "name": "cue-schemas",
+  "engineVersion": "v0.15.1",
+  "sdk": "go"
+}
