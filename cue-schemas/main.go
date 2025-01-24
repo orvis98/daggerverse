@@ -149,7 +149,7 @@ func (m *CueSchemas) VendorGithub(
 		ctr = ctr.WithWorkdir(mod).
 			WithExec([]string{"cue", "mod", "init", fmt.Sprintf("%s@v%d", mod, semver.Major()), "--source=self"}).
 			WithWorkdir("..")
-		ctr = ctr.WithDirectory(fmt.Sprintf("%s-%s", mod, gitTag), ctr.Directory(mod)).
+		ctr = ctr.WithDirectory(fmt.Sprintf("%s-%s", mod, tag), ctr.Directory(mod)).
 			WithoutDirectory(mod)
 	}
 	return ctr.Directory("."), nil
