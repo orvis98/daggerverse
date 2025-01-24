@@ -26,6 +26,7 @@ type CueSchemas struct {
 
 type GithubSource struct {
 	Tag    string   `yaml:"tag"`
+	GitTag string   `yaml:"gitTag"`
 	Owner  string   `yaml:"owner"`
 	Repo   string   `yaml:"repo"`
 	Files  []string `yaml:"files"`
@@ -99,8 +100,10 @@ func (m *CueSchemas) VendorTimoni() *dagger.Directory {
 // vendor Kubernetes CRD CUE schemas from GitHub
 func (m *CueSchemas) VendorGithub(
 	ctx context.Context,
-	// the github tag
+	// the desired tag
 	tag string,
+	// the github tag
+	gitTag string,
 	// the github owner
 	owner string,
 	// the github repo
@@ -119,10 +122,10 @@ func (m *CueSchemas) VendorGithub(
 	client := github.NewClient(nil)
 	var files []string
 	for _, f := range file {
-		files = append(files, fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/refs/tags/%s/%s", owner, repo, tag, f))
+		files = append(files, fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/refs/tags/%s/%s", owner, repo, gitTag, f))
 	}
 	for _, d := range dir {
-		_, entries, _, err := client.Repositories.GetContents(ctx, owner, repo, d, &github.RepositoryContentGetOptions{Ref: tag})
+		_, entries, _, err := client.Repositories.GetContents(ctx, owner, repo, d, &github.RepositoryContentGetOptions{Ref: gitTag})
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +136,7 @@ func (m *CueSchemas) VendorGithub(
 		}
 	}
 	for _, a := range asset {
-		files = append(files, fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", owner, repo, tag, a))
+		files = append(files, fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", owner, repo, gitTag, a))
 	}
 	ctr := m.Container().
 		WithExec([]string{"cue", "mod", "init"})
@@ -146,7 +149,7 @@ func (m *CueSchemas) VendorGithub(
 		ctr = ctr.WithWorkdir(mod).
 			WithExec([]string{"cue", "mod", "init", fmt.Sprintf("%s@v%d", mod, semver.Major()), "--source=self"}).
 			WithWorkdir("..")
-		ctr = ctr.WithDirectory(fmt.Sprintf("%s-%s", mod, tag), ctr.Directory(mod)).
+		ctr = ctr.WithDirectory(fmt.Sprintf("%s-%s", mod, gitTag), ctr.Directory(mod)).
 			WithoutDirectory(mod)
 	}
 	return ctr.Directory("."), nil
@@ -172,7 +175,7 @@ func (m *CueSchemas) Vendor(ctx context.Context, file *dagger.File) (*dagger.Dir
 	}
 	ctr := dag.Container()
 	for _, s := range sources.Github {
-		mods, err := m.VendorGithub(ctx, s.Tag, s.Owner, s.Repo, s.Files, s.Dirs, s.Assets)
+		mods, err := m.VendorGithub(ctx, s.Tag, s.GitTag, s.Owner, s.Repo, s.Files, s.Dirs, s.Assets)
 		if err != nil {
 			return nil, err
 		}
