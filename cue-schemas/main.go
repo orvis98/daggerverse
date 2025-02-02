@@ -299,8 +299,8 @@ func (m *CueSchemas) ExportGithub(
 	for _, f := range files {
 		ctr = ctr.WithExec([]string{"wget", f})
 	}
-	ctr = ctr.WithExec([]string{"cue", "import", "-fl", "strings.ToLower(kind)", "-l", "strings.ToLower(metadata.name)", "-o", "all.cue"}).
-		WithExec([]string{"cue", "export", "-e", "customresourcedefinition", "-o", "crds.cue", "all.cue"})
+	ctr = ctr.WithExec([]string{"cue", "import", "-fl", "strings.ToLower(kind)", "-l", "strings.ToLower(metadata.name)", "-p", "crds"}).
+		WithExec([]string{"cue", "export", "-e", "customresourcedefinition", "-o", "crds.cue"})
 	return ctr.File("crds.cue"), nil
 }
 
