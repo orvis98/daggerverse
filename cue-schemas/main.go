@@ -26,7 +26,7 @@ type CueSchemas struct {
 
 type GithubSource struct {
 	Tag    string   `yaml:"tag"`
-	GitTag string   `yaml:"gitTag"`
+	Ref    string   `yaml:"ref"`
 	Owner  string   `yaml:"owner"`
 	Repo   string   `yaml:"repo"`
 	Files  []string `yaml:"files"`
@@ -102,8 +102,8 @@ func (m *CueSchemas) VendorGithub(
 	ctx context.Context,
 	// the desired tag
 	tag string,
-	// the github tag
-	gitTag string,
+	// the github ref
+	ref string,
 	// the github owner
 	owner string,
 	// the github repo
@@ -120,12 +120,15 @@ func (m *CueSchemas) VendorGithub(
 ) (*dagger.Directory, error) {
 	semver := semver.MustParse(tag)
 	client := github.NewClient(nil)
+	if ref == "" {
+		ref = tag
+	}
 	var files []string
 	for _, f := range file {
-		files = append(files, fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/refs/tags/%s/%s", owner, repo, gitTag, f))
+		files = append(files, fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/refs/tags/%s/%s", owner, repo, ref, f))
 	}
 	for _, d := range dir {
-		_, entries, _, err := client.Repositories.GetContents(ctx, owner, repo, d, &github.RepositoryContentGetOptions{Ref: gitTag})
+		_, entries, _, err := client.Repositories.GetContents(ctx, owner, repo, d, &github.RepositoryContentGetOptions{Ref: ref})
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +139,7 @@ func (m *CueSchemas) VendorGithub(
 		}
 	}
 	for _, a := range asset {
-		files = append(files, fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", owner, repo, gitTag, a))
+		files = append(files, fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", owner, repo, ref, a))
 	}
 	ctr := m.Container().
 		WithExec([]string{"cue", "mod", "init"})
@@ -175,7 +178,7 @@ func (m *CueSchemas) Vendor(ctx context.Context, file *dagger.File) (*dagger.Dir
 	}
 	ctr := dag.Container()
 	for _, s := range sources.Github {
-		mods, err := m.VendorGithub(ctx, s.Tag, s.GitTag, s.Owner, s.Repo, s.Files, s.Dirs, s.Assets)
+		mods, err := m.VendorGithub(ctx, s.Tag, s.Ref, s.Owner, s.Repo, s.Files, s.Dirs, s.Assets)
 		if err != nil {
 			return nil, err
 		}
@@ -245,4 +248,79 @@ func (m *CueSchemas) Publish(
 		result += stdout
 	}
 	return result, nil
+}
+
+// export Kubernetes CRDs from GitHub
+func (m *CueSchemas) ExportGithub(
+	ctx context.Context,
+	// +optional
+	// the desired ref
+	tag string,
+	// the desired ref
+	ref string,
+	// the github owner
+	owner string,
+	// the github repo
+	repo string,
+	// +optional
+	// the repo files to vendor
+	file []string,
+	// +optional
+	// the repo directories to vendor
+	dir []string,
+	// +optional
+	// the repo release assets to vendor
+	asset []string,
+) (*dagger.File, error) {
+	client := github.NewClient(nil)
+	if ref == "" {
+		ref = tag
+	}
+	var files []string
+	for _, f := range file {
+		files = append(files, fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/refs/tags/%s/%s", owner, repo, ref, f))
+	}
+	for _, d := range dir {
+		_, entries, _, err := client.Repositories.GetContents(ctx, owner, repo, d, &github.RepositoryContentGetOptions{Ref: ref})
+		if err != nil {
+			return nil, err
+		}
+		for _, e := range entries {
+			if strings.HasSuffix(e.GetName(), ".yml") || strings.HasSuffix(e.GetName(), ".yaml") {
+				files = append(files, e.GetDownloadURL())
+			}
+		}
+	}
+	for _, a := range asset {
+		files = append(files, fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", owner, repo, ref, a))
+	}
+	ctr := m.Container().
+		WithWorkdir("/tmp/gen")
+	for _, f := range files {
+		ctr = ctr.WithExec([]string{"wget", f})
+	}
+	ctr = ctr.WithExec([]string{"cue", "import", "-fl", "strings.ToLower(kind)", "-l", "strings.ToLower(metadata.name)", "-o", "all.cue"}).
+		WithExec([]string{"cue", "export", "-e", "customresourcedefinition", "-o", "crds.cue", "all.cue"})
+	return ctr.File("crds.cue"), nil
+}
+
+// export Kubernetes CRDs from a sources.yaml file
+func (m *CueSchemas) Export(ctx context.Context, file *dagger.File) (*dagger.Directory, error) {
+	if err := m.Validate(ctx, file); err != nil {
+		return nil, err
+	}
+	contents, _ := file.Contents(ctx)
+	var sources Sources
+	if err := yamlv3.Unmarshal([]byte(contents), &sources); err != nil {
+		return nil, err
+	}
+	ctr := dag.Container()
+	for _, s := range sources.Github {
+		crds, err := m.ExportGithub(ctx, s.Tag, s.Ref, s.Owner, s.Repo, s.Files, s.Dirs, s.Assets)
+		if err != nil {
+			return nil, err
+		}
+		ctr = ctr.WithFile(s.Owner+"-"+s.Repo+".cue", crds)
+	}
+	return ctr.Directory("."), nil
 }

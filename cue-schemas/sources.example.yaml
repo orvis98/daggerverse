@@ -5,7 +5,7 @@ github:
     repo: flux2
     assets:
       - install.yaml
-  - tag: v1.2.4
+  - tag: v1.2.6
     owner: envoyproxy
     repo: gateway
     files:
