@@ -4,7 +4,7 @@ package schema
 
 #GithubSource: {
 	tag:       #Semver
-	gitTag:    string | *tag
+	ref:       string | *tag
 	githubURL: *"https://github.com" | string
 	owner:     =~#"^[\w\.-]+$"#
 	repo:      =~#"^[\w\.-]+$"#
