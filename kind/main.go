@@ -22,6 +22,7 @@ import (
 )
 
 type Kind struct {
+	// Container with the kind and docker binaries
 	Container *dagger.Container
 }
 
@@ -30,7 +31,7 @@ func New(
 	// +default="latest"
 	// the desired kind version
 	version string,
-	// the host Docker socket
+	// path to the host Docker socket
 	dockerSocket *dagger.Socket,
 ) *Kind {
 	docker := dag.Container().
@@ -45,16 +46,19 @@ func New(
 	}
 }
 
+// Prints the kind CLI version
 func (k *Kind) Version(ctx context.Context) (string, error) {
 	return k.Container.WithExec([]string{"kind", "version"}).
 		Stdout(ctx)
 }
 
+// Lists existing kind clusters by their name
 func (k *Kind) GetClusters(ctx context.Context) (string, error) {
 	return k.Container.WithExec([]string{"kind", "get", "clusters"}).
 		Stdout(ctx)
 }
 
+// Creates a local Kubernetes cluster
 func (k *Kind) CreateCluster(
 	ctx context.Context,
 	// +optional
@@ -90,6 +94,7 @@ func (k *Kind) CreateCluster(
 		Stdout(ctx)
 }
 
+// Deletes a cluster
 func (k *Kind) DeleteCluster(
 	ctx context.Context,
 	// +optional
@@ -110,6 +115,7 @@ func (k *Kind) DeleteCluster(
 		Stdout(ctx)
 }
 
+// Exports cluster kubeconfig
 func (k *Kind) Kubeconfig(
 	ctx context.Context,
 	// +optional
@@ -130,6 +136,7 @@ func (k *Kind) Kubeconfig(
 		File("config"), nil
 }
 
+// Exports logs to a directory
 func (k *Kind) Logs(
 	ctx context.Context,
 	// +optional
