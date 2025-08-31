@@ -9,30 +9,12 @@ import (
 
 type Examples struct{}
 
-// Returns a container with kubectl configured for a healthy kcp server.
-func (m *Examples) Kubectl(ctx context.Context) *dagger.Container {
-	kcp := dag.Kcp(dagger.KcpOpts{Name: "examples86"})
-	server, err := kcp.Server().Start(ctx)
-	if err != nil {
-		return nil
-	}
-	ep, err := server.Endpoint(ctx, dagger.ServiceEndpointOpts{Port: 6443, Scheme: "https"})
-	if err != nil {
-		return nil
-	}
-	return dag.Container().
-		// We wait for kcp's /healthz endpoint to respond with status 200.
-		From("alpine/curl").
-		WithExec([]string{"sh", "-c", `until [ "$(curl --insecure -s -o /dev/null -w "%{http_code}" ` + ep + `/healthz)" = "200" ]; do sleep 1; done;`}).
-		// We setup the kubectl container.
-		From("alpine/kubectl").
-		WithFile("/.kube/config", kcp.Config()).
-		WithEnvVariable("KUBECONFIG", "/.kube/config")
-}
-
-// Display the WorkspaceTypes in the root Workspace.
-func (m *Examples) GetWorkspaceTypes(ctx context.Context) (string, error) {
-	return m.Kubectl(ctx).
-		WithExec([]string{"kubectl", "get", "workspacetypes"}).
+// Creates and outputs an example Workspace tree.
+func (m *Examples) PrintWorkspaceTree(ctx context.Context) (string, error) {
+	return dag.Kcp(dagger.KcpOpts{Image: "ghcr.io/kcp-dev/kcp:v0.27.0"}).
+		Kubectl(dagger.KcpKubectlOpts{Arch: "arm64"}).
+		WithExec([]string{"kubectl", "create", "workspace", "org-1"}).
+		WithExec([]string{"kubectl", "create", "workspace", "org-2"}).
+		WithExec([]string{"kubectl", "ws", "tree"}).
 		Stdout(ctx)
 }
