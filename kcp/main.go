@@ -116,7 +116,7 @@ func New(
 	name string,
 	// The kcp server container image.
 	// +optional
-	// +default="ghcr.io/kcp-dev/kcp:v0.27.0"
+	// +default="ghcr.io/kcp-dev/kcp:v0.28.1"
 	image string,
 ) *Kcp {
 	pki := bootstrapPKI()
@@ -162,12 +162,12 @@ func (m *Kcp) Kubectl(
 ) (*dagger.Container, error) {
 	binDir := dag.Container().
 		From("alpine/kubectl").
-		WithExec([]string{"wget", fmt.Sprintf("https://github.com/kcp-dev/kcp/releases/download/v0.27.0/kubectl-create-workspace-plugin_0.27.0_%s_%s.tar.gz", platform, arch)}).
-		WithExec([]string{"tar", "-xf", fmt.Sprintf("kubectl-create-workspace-plugin_0.27.0_%s_%s.tar.gz", platform, arch), "-C", "/usr/local/bin", "--strip-components=1"}).
-		WithExec([]string{"wget", fmt.Sprintf("https://github.com/kcp-dev/kcp/releases/download/v0.27.0/kubectl-kcp-plugin_0.27.0_%s_%s.tar.gz", platform, arch)}).
-		WithExec([]string{"tar", "-xf", fmt.Sprintf("kubectl-kcp-plugin_0.27.0_%s_%s.tar.gz", platform, arch), "-C", "/usr/local/bin", "--strip-components=1"}).
-		WithExec([]string{"wget", fmt.Sprintf("https://github.com/kcp-dev/kcp/releases/download/v0.27.0/kubectl-ws-plugin_0.27.0_%s_%s.tar.gz", platform, arch)}).
-		WithExec([]string{"tar", "-xf", fmt.Sprintf("kubectl-ws-plugin_0.27.0_%s_%s.tar.gz", platform, arch), "-C", "/usr/local/bin", "--strip-components=1"}).
+		WithExec([]string{"wget", fmt.Sprintf("https://github.com/kcp-dev/kcp/releases/download/v0.28.1/kubectl-create-workspace-plugin_0.28.1_%s_%s.tar.gz", platform, arch)}).
+		WithExec([]string{"tar", "-xf", fmt.Sprintf("kubectl-create-workspace-plugin_0.28.1_%s_%s.tar.gz", platform, arch), "-C", "/usr/local/bin", "--strip-components=1"}).
+		WithExec([]string{"wget", fmt.Sprintf("https://github.com/kcp-dev/kcp/releases/download/v0.28.1/kubectl-kcp-plugin_0.28.1_%s_%s.tar.gz", platform, arch)}).
+		WithExec([]string{"tar", "-xf", fmt.Sprintf("kubectl-kcp-plugin_0.28.1_%s_%s.tar.gz", platform, arch), "-C", "/usr/local/bin", "--strip-components=1"}).
+		WithExec([]string{"wget", fmt.Sprintf("https://github.com/kcp-dev/kcp/releases/download/v0.28.1/kubectl-ws-plugin_0.28.1_%s_%s.tar.gz", platform, arch)}).
+		WithExec([]string{"tar", "-xf", fmt.Sprintf("kubectl-ws-plugin_0.28.1_%s_%s.tar.gz", platform, arch), "-C", "/usr/local/bin", "--strip-components=1"}).
 		Directory("/usr/local/bin")
 	return dag.Container().
 		From("alpine/curl").
