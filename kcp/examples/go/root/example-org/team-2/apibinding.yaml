@@ -1,0 +1,10 @@
+---
+apiVersion: apis.kcp.io/v1alpha1
+kind: APIBinding
+metadata:
+  name: example.org
+spec:
+  reference:
+    export:
+      name: example.org
+      path: root:example-org:team-1
